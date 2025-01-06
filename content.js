@@ -39,6 +39,8 @@ async function captureAndOCR() {
     console.log("Screenshot response:", response); // Debug log
     if (response && response.dataUrl) {
       const text = await performOCR(response.dataUrl);
+      // Copy to clipboard
+      await navigator.clipboard.writeText(text);
       return text;
     }
   } catch (error) {

@@ -9,7 +9,8 @@
     "tabs",
     "desktopCapture",
     "scripting",
-    "contextMenus"
+    "contextMenus",
+    "clipboardWrite"
   ],
   "host_permissions": ["<all_urls>"],
   "background": {
