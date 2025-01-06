@@ -47,8 +47,20 @@ async function captureAndOCR() {
   }
 }
 
-setTimeout(() => {
-  captureAndOCR()
-    .then((result) => console.log("OCR Result:", result))
-    .catch((error) => console.error("Error:", error));
-}, 10000);
+// setTimeout(() => {
+//   captureAndOCR()
+//     .then((result) => console.log("OCR Result:", result))
+//     .catch((error) => console.error("Error:", error));
+// }, 10000);
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "performOCR") {
+    captureAndOCR()
+      .then((result) => {
+        console.log("OCR Result:", result);
+        // Optionally, you could copy the result to clipboard here
+        // or show it in a popup
+      })
+      .catch((error) => console.error("Error:", error));
+  }
+});

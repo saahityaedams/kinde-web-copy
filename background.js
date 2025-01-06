@@ -1,3 +1,18 @@
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.contextMenus.create({
+    id: "kindleCopy",
+    title: "Copy Text from Screen",
+    contexts: ["page"],
+  });
+});
+
+// Handle context menu clicks
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === "kindleCopy") {
+    chrome.tabs.sendMessage(tab.id, { action: "performOCR" });
+  }
+});
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "takeScreenshot") {
     // Take screenshot of the current tab
