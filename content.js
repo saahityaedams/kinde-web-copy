@@ -60,6 +60,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     captureAndOCR()
       .then((result) => {
         console.log("OCR Result:", result);
+        alert("OCR completed! Text copied to clipboard."); // Simple notification
         // Optionally, you could copy the result to clipboard here
         // or show it in a popup
       })
