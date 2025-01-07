@@ -17,7 +17,8 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_title": "Kindle Copy"
+    "default_title": "Kindle Copy",
+    "default_popup": "popup.html"
   },
   "web_accessible_resources": [
     {
@@ -34,5 +35,14 @@
       "js": ["tesseract/tesseract.min.js", "content.js"],
       "matches": ["https://read.amazon.in/*"]
     }
-  ]
+  ],
+  "commands": {
+    "perform-ocr": {
+      "suggested_key": {
+        "default": "Ctrl+C",
+        "mac": "Command+C"
+      },
+      "description": "Kindle Copy"
+    }
+  }
 }

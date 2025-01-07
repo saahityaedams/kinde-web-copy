@@ -12,8 +12,8 @@ Inspired from [Image-To-Text-OCR-extension-for-ChatGPT
 5. Refresh the kindle web app
 
 # Additional Features
-- [] Copy only the highlighted text in the screen
+- [x] Copy only the highlighted text in the screen
 - [] Better system to notify when OCR is copying/done (progress indicator ?).
 - [] Papercut UI improvements
-- [] Keyboard shortcut
-- [] Improve OCR speed
+- [x] Keyboard shortcut
+- [] Improve OCR speed ?

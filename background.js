@@ -29,3 +29,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Will respond asynchronously
   }
 });
+
+chrome.commands.onCommand.addListener((command) => {
+  if (command === "perform-ocr") {
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: "performOCR" });
+      }
+    });
+  }
+});

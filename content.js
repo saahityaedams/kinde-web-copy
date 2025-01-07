@@ -37,7 +37,79 @@ async function captureAndOCR() {
       action: "takeScreenshot",
     });
     console.log("Screenshot response:", response); // Debug log
+
+    const selections = document.querySelectorAll(".kg-selection");
+    let selectionsByTop = {};
+    selections.forEach((selection) => {
+      let rect = selection.getBoundingClientRect();
+      let top = rect.top + "px";
+      if (!selectionsByTop[top]) {
+        selectionsByTop[top] = [];
+      }
+      selectionsByTop[top].push(selection);
+    });
+    let rectangularBounds = {};
+    Object.keys(selectionsByTop).forEach((top) => {
+      let selections = selectionsByTop[top];
+      let rects = selections.map((sel) => sel.getBoundingClientRect());
+      let minLeft = Math.min(...rects.map((rect) => rect.left));
+      let maxRight = Math.max(...rects.map((rect) => rect.right));
+      rectangularBounds[top] = {
+        top: parseFloat(top),
+        left: minLeft,
+        width: maxRight - minLeft,
+        height: rects[0].height,
+      };
+    });
+    const img = new Image();
+    img.src = response.dataUrl;
+    await new Promise((resolve) => (img.onload = resolve));
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    let croppedDataUrls = [];
+
+    for (let top in rectangularBounds) {
+      const bounds = rectangularBounds[top];
+      canvas.width = bounds.width;
+      canvas.height = bounds.height;
+
+      // Account for device pixel ratio
+      const dpr = window.devicePixelRatio || 1;
+      const scaledLeft = bounds.left * dpr;
+      const scaledTop = bounds.top * dpr;
+      const scaledWidth = bounds.width * dpr;
+      const scaledHeight = bounds.height * dpr;
+
+      ctx.drawImage(
+        img,
+        scaledLeft,
+        scaledTop,
+        scaledWidth,
+        scaledHeight,
+        0,
+        0,
+        bounds.width,
+        bounds.height,
+      );
+      const croppedDataUrl = canvas.toDataURL();
+      croppedDataUrls.push(croppedDataUrl);
+      console.log(`Cropped image for top ${top}:`, croppedDataUrl);
+    }
+    console.log("Rectangular bounds:", rectangularBounds);
+    console.log("Found selections:", selections);
+    console.log("Found selections grouped by tops:", selectionsByTop);
+
     if (response && response.dataUrl) {
+      if (croppedDataUrls.length > 0) {
+        const textParts = await Promise.all(
+          croppedDataUrls.map((url) => performOCR(url)),
+        );
+        const text = textParts.join(" ");
+        await navigator.clipboard.writeText(text);
+        return text;
+      }
       const text = await performOCR(response.dataUrl);
       // Copy to clipboard
       await navigator.clipboard.writeText(text);
@@ -48,12 +120,6 @@ async function captureAndOCR() {
     throw error;
   }
 }
-
-// setTimeout(() => {
-//   captureAndOCR()
-//     .then((result) => console.log("OCR Result:", result))
-//     .catch((error) => console.error("Error:", error));
-// }, 10000);
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "performOCR") {
