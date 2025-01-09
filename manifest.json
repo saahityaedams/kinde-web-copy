@@ -39,8 +39,7 @@
   "commands": {
     "perform-ocr": {
       "suggested_key": {
-        "default": "Ctrl+C",
-        "mac": "Command+C"
+        "mac": "Command+K"
       },
       "description": "Kindle Copy"
     }
