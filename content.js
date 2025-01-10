@@ -29,7 +29,78 @@ async function performOCR(dataUrl) {
   }
 }
 
-// New function to capture screenshot and perform OCR
+async function getCroppedImages(selections, dataUrl) {
+  // group highlighted text segments by line
+  let selectionsByTop = {};
+  selections.forEach((selection) => {
+    let rect = selection.getBoundingClientRect();
+    let top = rect.top + "px";
+    if (!selectionsByTop[top]) {
+      selectionsByTop[top] = [];
+    }
+    selectionsByTop[top].push(selection);
+  });
+
+  // get boundaries for each line
+  let rectangularBounds = {};
+  Object.keys(selectionsByTop).forEach((top) => {
+    let selections = selectionsByTop[top];
+    let rects = selections.map((sel) => sel.getBoundingClientRect());
+    let minLeft = Math.min(...rects.map((rect) => rect.left));
+    let maxRight = Math.max(...rects.map((rect) => rect.right));
+    rectangularBounds[top] = {
+      top: parseFloat(top),
+      left: minLeft,
+      width: maxRight - minLeft,
+      height: rects[0].height,
+    };
+  });
+
+  let croppedDataUrls = [];
+
+  const img = new Image();
+  img.src = dataUrl;
+  await new Promise((resolve) => (img.onload = resolve));
+
+  // get cropped images using some canvas stuff
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+
+  for (let top in rectangularBounds) {
+    const bounds = rectangularBounds[top];
+    canvas.width = bounds.width;
+    canvas.height = bounds.height;
+
+    // Account for device pixel ratio
+    const dpr = window.devicePixelRatio || 1;
+    const scaledLeft = bounds.left * dpr;
+    const scaledTop = bounds.top * dpr;
+    const scaledWidth = bounds.width * dpr;
+    const scaledHeight = bounds.height * dpr;
+
+    ctx.drawImage(
+      img,
+      scaledLeft,
+      scaledTop,
+      scaledWidth,
+      scaledHeight,
+      0,
+      0,
+      bounds.width,
+      bounds.height,
+    );
+    const croppedDataUrl = canvas.toDataURL();
+    croppedDataUrls.push(croppedDataUrl);
+    console.log(`Cropped image for top ${top}:`, croppedDataUrl);
+  }
+  console.log("Rectangular bounds:", rectangularBounds);
+  console.log("Found selections:", selections);
+  console.log("Found selections grouped by tops:", selectionsByTop);
+
+  return croppedDataUrls;
+}
+
+// capture screenshot and perform OCR
 async function captureAndOCR() {
   try {
     // Send message to background script to take screenshot
@@ -38,82 +109,23 @@ async function captureAndOCR() {
     });
     console.log("Screenshot response:", response); // Debug log
 
-    const selections = document.querySelectorAll(".kg-selection");
-    let selectionsByTop = {};
-    selections.forEach((selection) => {
-      let rect = selection.getBoundingClientRect();
-      let top = rect.top + "px";
-      if (!selectionsByTop[top]) {
-        selectionsByTop[top] = [];
-      }
-      selectionsByTop[top].push(selection);
-    });
-    let rectangularBounds = {};
-    Object.keys(selectionsByTop).forEach((top) => {
-      let selections = selectionsByTop[top];
-      let rects = selections.map((sel) => sel.getBoundingClientRect());
-      let minLeft = Math.min(...rects.map((rect) => rect.left));
-      let maxRight = Math.max(...rects.map((rect) => rect.right));
-      rectangularBounds[top] = {
-        top: parseFloat(top),
-        left: minLeft,
-        width: maxRight - minLeft,
-        height: rects[0].height,
-      };
-    });
-    const img = new Image();
-    img.src = response.dataUrl;
-    await new Promise((resolve) => (img.onload = resolve));
-
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-
-    let croppedDataUrls = [];
-
-    for (let top in rectangularBounds) {
-      const bounds = rectangularBounds[top];
-      canvas.width = bounds.width;
-      canvas.height = bounds.height;
-
-      // Account for device pixel ratio
-      const dpr = window.devicePixelRatio || 1;
-      const scaledLeft = bounds.left * dpr;
-      const scaledTop = bounds.top * dpr;
-      const scaledWidth = bounds.width * dpr;
-      const scaledHeight = bounds.height * dpr;
-
-      ctx.drawImage(
-        img,
-        scaledLeft,
-        scaledTop,
-        scaledWidth,
-        scaledHeight,
-        0,
-        0,
-        bounds.width,
-        bounds.height,
-      );
-      const croppedDataUrl = canvas.toDataURL();
-      croppedDataUrls.push(croppedDataUrl);
-      console.log(`Cropped image for top ${top}:`, croppedDataUrl);
-    }
-    console.log("Rectangular bounds:", rectangularBounds);
-    console.log("Found selections:", selections);
-    console.log("Found selections grouped by tops:", selectionsByTop);
-
     if (response && response.dataUrl) {
-      if (croppedDataUrls.length > 0) {
+      // determine if it copying selected region or entire screen
+      const selections = document.querySelectorAll(".kg-selection");
+      if (selections.length > 0) {
+        dataUrls = await getCroppedImages(selections, response.dataUrl);
+      } else {
+        dataUrls = [response.dataUrl];
+      }
+
+      if (dataUrls.length > 0) {
         const textParts = await Promise.all(
-          croppedDataUrls.map((url) => performOCR(url)),
+          dataUrls.map((url) => performOCR(url)),
         );
         const text = textParts.join(" ");
         await navigator.clipboard.writeText(text);
         return text;
       }
-      const text = await performOCR(response.dataUrl);
-      // Copy to clipboard
-      await navigator.clipboard.writeText(text);
-      return text;
     }
   } catch (error) {
     console.error("Capture and OCR Error:", error);

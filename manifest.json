@@ -12,7 +12,7 @@
     "contextMenus",
     "clipboardWrite"
   ],
-  "host_permissions": ["https://read.amazon.in/*"],
+  "host_permissions": ["https://read.amazon.in/*", "https://read.amazon.com/*"],
   "background": {
     "service_worker": "background.js"
   },
@@ -23,7 +23,7 @@
   "web_accessible_resources": [
     {
       "resources": ["tesseract/*"],
-      "matches": ["https://read.amazon.in/*"],
+      "matches": ["https://read.amazon.in/*", "https://read.amazon.com/*"],
       "use_dynamic_url": true
     }
   ],
@@ -33,7 +33,7 @@
   "content_scripts": [
     {
       "js": ["tesseract/tesseract.min.js", "content.js"],
-      "matches": ["https://read.amazon.in/*"]
+      "matches": ["https://read.amazon.in/*", "https://read.amazon.com/*"]
     }
   ],
   "commands": {
